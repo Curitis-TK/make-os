@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.nas": "nasm",
+        "stdio.h": "c",
+        "bootpack.h": "c"
+    }
+}
