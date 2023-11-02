@@ -13,37 +13,72 @@ SCRNX	EQU		0x0ff4			; 分辨率X
 SCRNY	EQU		0x0ff6			; 分辨率Y
 VRAM	EQU		0x0ff8			; 图形缓冲的起始地址
 
+[INSTRSET "i486p"]				; “想要使用486指令”的叙述，之后就可以使用32位功能了
+
+
 ; 程序内存地址
 ORG		0xc200
 
+; 计划使用的屏幕模式；具体内容参考README文档
+VBEMODE EQU     0x103
+
 ; 画面设定
+; 确认VBE是否存在
+        MOV     AX,0x9000
+        MOV     ES,AX
+        MOV     DI,0			; 设定[ES:DI] => [0x9000:0x0]
+        MOV     AX,0x4f00
+        INT     0x10
+        CMP     AX,0x004f
+        JNE     scrn320 		; 如果AX没有变成0x4f，代表VBE不存在，无法使用高分辨率模式
 
-		; MOV		AL,0x13			; VGA图形，320x200 8bit色彩
-		; MOV		AH,0x00
-		; INT		0x10
-		; MOV		BYTE [VMODE],8	; 记下画面模式（参考C语言）
-		; MOV		WORD [SCRNX],320
-		; MOV		WORD [SCRNY],200
-		; MOV		DWORD [VRAM],0x000a0000
+; 检查VBE的版本
+        MOV     AX,[ES:DI+4]	; 获取上面调用BIOS获取到的参数
+        CMP     AX,0x0200
+        JB      scrn320         ; 如果AX小于0x200代表版本号低于2.0，无法使用高分辨率模式
 
-		; MOV     BX,0x4101       ; VBE的640x480x8bi彩色
-        ; MOV     AX,0x4f02
-        ; INT     0x10
-        ; MOV     BYTE [VMODE],8  ; 记下画面模式（参考C语言）
-        ; MOV     WORD [SCRNX],640
-        ; MOV     WORD [SCRNY],480
-        ; MOV     DWORD [VRAM],0xe0000000
+; 取得画面模式信息，判断图像模式是否可用
+        MOV     CX,VBEMODE		; 即将使用的图像模式
+        MOV     AX,0x4f01		; 使用VBE
+        INT     0x10
+        CMP     AX,0x004f
+        JNE     scrn320			; 如果AX没有变成0x4f，代表图像模式不可用
 
-		MOV     BX,0x4105       ; VBE的1024x768x8bit彩色
-		MOV     AX,0x4f02
-		INT     0x10
-		MOV     BYTE [VMODE],8  ; 记下画面模式（参考C语言）
-		MOV     WORD [SCRNX],1024
-		MOV     WORD [SCRNY],768
-		MOV     DWORD [VRAM],0xe0000000
+; 检查画面信息
+		CMP     BYTE [ES:DI+0x19],8
+		JNE     scrn320					; 如果颜色数不是8
+		CMP     BYTE [ES:DI+0x1b],4
+		JNE     scrn320					; 如果颜色指定的方法不是4
+		MOV     AX,[ES:DI+0x00]
+		AND     AX,0x0080				; 第七位是否是1
+		JZ      scrn320
 
-; 让BIOS告知键盘的LED状态
+; 使用高分辨率画面模式
+        MOV     BX,VBEMODE+0x4000
+        MOV     AX,0x4f02
+        INT     0x10
+        MOV     BYTE [VMODE],8  ; 保存画面模式
+        MOV     AX,[ES:DI+0x12]
+        MOV     [SCRNX],AX
+        MOV     AX,[ES:DI+0x14]
+        MOV     [SCRNY],AX
+        MOV     EAX,[ES:DI+0x28]
+        MOV     [VRAM],EAX
+        JMP     keystatus
 
+; 使用传统画面模式
+scrn320:
+        MOV     AL,0x13         ; VGA模式；320x200x8bit彩色
+        MOV     AH,0x00
+        INT     0x10
+        MOV     BYTE [VMODE],8  ; 保存画面模式
+        MOV     WORD [SCRNX],320
+        MOV     WORD [SCRNY],200
+        MOV     DWORD [VRAM],0xa0000
+
+
+; 取得键盘的LED状态
+keystatus:
 		MOV		AH,0x02
 		INT		0x16 			; keyboard BIOS
 		MOV		[LEDS],AL
@@ -89,9 +124,6 @@ ORG		0xc200
 
 
 ; 切换到保护模式
-
-[INSTRSET "i486p"]				; “想要使用486指令”的叙述，之后就可以使用32位功能了
-
 		LGDT	[GDTR0]			; 设定临时GDT
 		MOV		EAX,CR0
 		AND		EAX,0x7fffffff	; 设第31位为0（禁止分页）

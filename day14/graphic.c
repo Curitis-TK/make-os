@@ -25,8 +25,7 @@ void init_palette(void)
     set_palette(0, 15, table_rgb);
 
     struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
-    boxfill8(binfo->vram, binfo->scrnx, COL8_840084, 0, 0, binfo->scrnx, 20);
-    putfonts8_asc(binfo->vram, binfo->scrnx, 1, 1, COL8_848484, "init_pallette");
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 64, COL8_FFFFFF, "pallette init");
 
     return;
 }
@@ -152,23 +151,6 @@ void putfonts8_asc(char *vram, int xsize, int x, int y, char color, unsigned cha
         putfont8(vram, xsize, x, y, color, hankaku + *s * 16); // hankaku内存位置 + (ASCII对应编码 * 16)偏移
         x += 8;
     }
-    return;
-}
-
-/* 绘制字符并刷新
-    - *sht 图层
-    - x 绘制位置x
-    - y 绘制位置y
-    - c 绘制颜色
-    - b 背景颜色
-    - *s 字符串
-    - l 字符长度
- */
-void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s, int l)
-{
-    boxfill8(sht->buf, sht->bxsize, b, x, y, x + l * 8 - 1, y + 15);
-    putfonts8_asc(sht->buf, sht->bxsize, x, y, c, s);
-    sheet_refresh(sht, x, y, x + l * 8, y + 16);
     return;
 }
 

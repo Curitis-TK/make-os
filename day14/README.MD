@@ -1,5 +1,18 @@
 # Day14
 
+## 使用高分辨率模式
+
+```
+; VBE的640x480x8bit色彩
+MOV     BX,0x4101
+MOV     AX,0x4f02
+INT     0x10
+MOV     BYTE [VMODE],8
+MOV     WORD [SCRNX],640
+MOV     WORD [SCRNY],480
+MOV     DWORD [VRAM],0xe0000000
+```
+
 ## VESA
 
 在早期，由IBM规定了画面模式和相关规格，各显卡公司也依照规范来制作显卡。
@@ -94,7 +107,7 @@ JNE     scrn320
 
 | 类型  | 地址         | 描述                                     |
 | ----- | ------------ | ---------------------------------------- |
-| WORD  | [ES:DI+0x00] | 模式属性（第7位代表是否能加上0x400？）   |
+| WORD  | [ES:DI+0x00] | 模式属性（第7位代表是否能加上0x4000）    |
 | WORD  | [ES:DI+0x12] | 分辨率x                                  |
 | WORD  | [ES:DI+0x14] | 分辨率y                                  |
 | BYTE  | [ES:DI+0x19] | 颜色数（必须为8）                        |
@@ -102,3 +115,16 @@ JNE     scrn320
 | DWORD | [ES:DI+0x28] | VRAM的地址                               |
 
 画面模式信息可以直接获取了，无需再手动维护了。
+
+### 判断
+
+```assembly
+CMP     BYTE [ES:DI+0x19],8
+JNE     scrn320					; 如果颜色数不是8
+CMP     BYTE [ES:DI+0x1b],4
+JNE     scrn320					; 如果颜色指定的方法不是4
+MOV     AX,[ES:DI+0x00]
+AND     AX,0x0080				; 第七位是否能加上0x4000
+JZ      scrn320
+```
+

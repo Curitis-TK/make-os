@@ -14,6 +14,8 @@ void HariMain(void)
     struct FIFO32 fifo;
     fifo32_init(&fifo, 128, fifobuf);
 
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, "fifo init");
+
     // 激活键鼠
     io_out8(PIC0_IMR, 0xf8); /* PIC1和允许键盘还有定时器(11111000)*/
     io_out8(PIC1_IMR, 0xef); /* 允许鼠标(11101111) */
@@ -50,6 +52,13 @@ void HariMain(void)
 
     init_palette(); // 初始化调色板
 
+    sprintf(s, "VRAM: 0x%02X", binfo->vram);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 80, COL8_FFFFFF, s);
+    sprintf(s, "SCRNX: %d", binfo->scrnx);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 96, COL8_FFFFFF, s);
+    sprintf(s, "SCRNY: %d", binfo->scrny);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 112, COL8_FFFFFF, s);
+
     // 初始化图层控制
     struct SHTCTL *shtctl;
     struct SHEET *sht_back, *sht_mouse, *sht_win;
@@ -64,16 +73,16 @@ void HariMain(void)
 
     // 图层内存声明
     buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
-    buf_win = (unsigned char *)memman_alloc_4k(memman, 160 * 68);
+    buf_win = (unsigned char *)memman_alloc_4k(memman, 160 * 52);
 
     sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny, -1);
     sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);
-    sheet_setbuf(sht_win, buf_win, 160, 68, -1);
+    sheet_setbuf(sht_win, buf_win, 160, 52, -1);
 
     init_screen8(buf_back, binfo->scrnx, binfo->scrny); // 初始化屏幕图像buf
     init_mouse_cursor8(buf_mouse, 99);                  // 初始化鼠标图像buf
 
-    make_window8(buf_win, 160, 68, "counter"); // 绘制计数器窗口
+    make_window8(buf_win, 160, 52, "counter"); // 绘制计数器窗口
 
     sheet_slide(sht_back, 0, 0);
     // 屏幕中心坐标计算
@@ -201,4 +210,89 @@ void HariMain(void)
             }
         }
     }
+}
+
+/* 创建窗口
+    - *buf 内容缓冲区
+    - xsize 窗口宽度
+    - ysize 窗口高度
+    - *title 标题
+ */
+void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
+{
+    // 关闭按钮
+    static char closebtn[14][16] = {
+        "OOOOOOOOOOOOOOO@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQQQ@@QQQQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "O$$$$$$$$$$$$$$@",
+        "@@@@@@@@@@@@@@@@"};
+    int x, y;
+    char c;
+    // 绘制窗口本体
+    boxfill8(buf, xsize, COL8_C6C6C6, 0, 0, xsize - 1, 0);
+    boxfill8(buf, xsize, COL8_FFFFFF, 1, 1, xsize - 2, 1);
+    boxfill8(buf, xsize, COL8_C6C6C6, 0, 0, 0, ysize - 1);
+    boxfill8(buf, xsize, COL8_FFFFFF, 1, 1, 1, ysize - 2);
+    boxfill8(buf, xsize, COL8_848484, xsize - 2, 1, xsize - 2, ysize - 2);
+    boxfill8(buf, xsize, COL8_000000, xsize - 1, 0, xsize - 1, ysize - 1);
+    boxfill8(buf, xsize, COL8_C6C6C6, 2, 2, xsize - 3, ysize - 3);
+    boxfill8(buf, xsize, COL8_000084, 3, 3, xsize - 4, 20);
+    boxfill8(buf, xsize, COL8_848484, 1, ysize - 2, xsize - 2, ysize - 2);
+    boxfill8(buf, xsize, COL8_000000, 0, ysize - 1, xsize - 1, ysize - 1);
+    // 绘制标题
+    putfonts8_asc(buf, xsize, 24, 4, COL8_FFFFFF, title);
+
+    // 绘制关闭按钮
+    for (y = 0; y < 14; y++)
+    {
+        for (x = 0; x < 16; x++)
+        {
+            c = closebtn[y][x];
+            if (c == '@')
+            {
+                c = COL8_000000;
+            }
+            else if (c == '$')
+            {
+                c = COL8_848484;
+            }
+            else if (c == 'Q')
+            {
+                c = COL8_C6C6C6;
+            }
+            else
+            {
+                c = COL8_FFFFFF;
+            }
+            buf[(5 + y) * xsize + (xsize - 21 + x)] = c;
+        }
+    }
+    return;
+}
+
+/* 绘制字符并刷新
+    - *sht 图层
+    - x 绘制位置x
+    - y 绘制位置y
+    - c 绘制颜色
+    - b 背景颜色
+    - *s 字符串
+    - l 字符长度
+ */
+void putfonts8_asc_sht(struct SHEET *sht, int x, int y, int c, int b, char *s, int l)
+{
+    boxfill8(sht->buf, sht->bxsize, b, x, y, x + l * 8 - 1, y + 15);
+    putfonts8_asc(sht->buf, sht->bxsize, x, y, c, s);
+    sheet_refresh(sht, x, y, x + l * 8, y + 16);
+    return;
 }

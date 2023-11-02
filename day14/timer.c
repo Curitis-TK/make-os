@@ -36,6 +36,9 @@ void init_pit(void)
     timerctl.t0 = t; // 初始化时，只有哨兵计时器
     timerctl.next = 0xffffffff;
 
+    struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 48, COL8_FFFFFF, "pit init");
+
     return;
 }
 

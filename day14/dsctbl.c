@@ -83,6 +83,9 @@ void init_gdtidt(void)
     set_gatedesc(idt + 0x27, (int)asm_inthandler27, 2 * 8, AR_INTGATE32);
     set_gatedesc(idt + 0x2c, (int)asm_inthandler2c, 2 * 8, AR_INTGATE32);
 
+    struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, "gdtidt init");
+
     return;
 }
 

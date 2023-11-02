@@ -1,0 +1,11 @@
+# 构建产物
+*.lst
+*.obj
+*.bin
+*.img
+*.sys
+*.bim
+*.hrb
+*.map
+
+.vscode

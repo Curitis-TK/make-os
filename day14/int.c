@@ -29,6 +29,9 @@ void init_pic(void)
     io_out8(PIC0_IMR, 0xfb); /* 11111011 PIC1以外全部禁止 */
     io_out8(PIC1_IMR, 0xff); /* 11111111 禁止所有中断 */
 
+    struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, "pic init");
+
     return;
 }
 

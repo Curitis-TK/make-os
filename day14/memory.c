@@ -8,7 +8,6 @@
 // 全局启用/禁用透写缓存；全局启用/禁用内存缓存
 #define CR0_CACHE_DISABLE 0x60000000
 
-
 // 内存测试
 unsigned int memtest(unsigned int start, unsigned int end)
 {
@@ -66,7 +65,7 @@ unsigned int memtest(unsigned int start, unsigned int end)
 }
  */
 
- // 初始化内存管理
+// 初始化内存管理
 void memman_init(struct MEMMAN *man)
 {
     man->frees = 0;    // 可用信息数目
@@ -94,16 +93,16 @@ unsigned int memman_alloc(struct MEMMAN *man, unsigned int size)
 
     for (i = 0; i < man->frees; i++)
     {
-        if (man->free[i].size >= size)  // 寻找内存可用段
+        if (man->free[i].size >= size) // 寻找内存可用段
         {
-            a = man->free[i].addr;      // 记录分配到的内存地址
-            man->free[i].addr += size;  // 地址减去已分配部分
-            man->free[i].size -= size;  // 可用空间减去已分配部分
+            a = man->free[i].addr;     // 记录分配到的内存地址
+            man->free[i].addr += size; // 地址减去已分配部分
+            man->free[i].size -= size; // 可用空间减去已分配部分
 
             // 删除size为0的可用空间片段
             if (man->free[i].size == 0)
             {
-                man->frees--;                   // 可用段-1
+                man->frees--; // 可用段-1
 
                 // 记录向前位移
                 for (; i < man->frees; i++)
@@ -115,9 +114,9 @@ unsigned int memman_alloc(struct MEMMAN *man, unsigned int size)
             // 返回空间地址
             return a;
         }
-        // 找不到可用空间
-        return 0;
     }
+    // 找不到可用空间
+    return 0;
 }
 
 // 释放内存
@@ -125,24 +124,31 @@ int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
 {
     int i, j;
     // 找到往后最近的地址
-    for (i = 0; i < man->frees; i++) {
-        if (man->free[i].addr > addr) {
+    for (i = 0; i < man->frees; i++)
+    {
+        if (man->free[i].addr > addr)
+        {
             break;
         }
     }
 
-    if (i > 0){ // 前方有可用内存
+    if (i > 0)
+    { // 前方有可用内存
 
-        if(man->free[i - 1].addr + man->free[i - 1].size == addr){  // 并且释放内存地址与前一部分可用区相连
-            man->free[i - 1].size += size;  // 合并内存空间
+        if (man->free[i - 1].addr + man->free[i - 1].size == addr)
+        {                                  // 并且释放内存地址与前一部分可用区相连
+            man->free[i - 1].size += size; // 合并内存空间
 
-            if (i < man->frees) {   // 后方有可用内存
-                if (addr + size == man->free[i].addr) { // 如果释放内存与后一部分可用区相连
+            if (i < man->frees)
+            { // 后方有可用内存
+                if (addr + size == man->free[i].addr)
+                { // 如果释放内存与后一部分可用区相连
                     // 把后面的内存空间合并
                     man->free[i - 1].size += man->free[i].size;
                     man->frees--;
                     // 把后面的可用内存往前挪
-                    for (; i < man->frees; i++) {
+                    for (; i < man->frees; i++)
+                    {
                         man->free[i] = man->free[i + 1];
                     }
                 }
@@ -153,26 +159,31 @@ int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
     }
 
     // 前方没有可用空间可合并
-    if (i < man->frees) {
-       if (addr + size == man->free[i].addr) {  // 如果释放内存与后一部分可用区相连
+    if (i < man->frees)
+    {
+        if (addr + size == man->free[i].addr)
+        { // 如果释放内存与后一部分可用区相连
             // 把后面的内存空间合并
             man->free[i].addr = addr;
             man->free[i].size += size;
             // 完成
             return 0;
-       }
-   }
+        }
+    }
 
     // 前后都没有可用空间合并，判断可用空间数是否达到限制
-    if (man->frees < MEMMAN_FREES) {
+    if (man->frees < MEMMAN_FREES)
+    {
         // free[i]之后的，向后移动，腾出位置用来放新地址的可用空间
-        for (j = man->frees; j > i; j--) {
+        for (j = man->frees; j > i; j--)
+        {
             man->free[j] = man->free[j - 1];
         }
-        man->frees++;   // 可用空间数量+1
+        man->frees++; // 可用空间数量+1
 
         // 更新最大值
-        if (man->maxfrees < man->frees) {
+        if (man->maxfrees < man->frees)
+        {
             man->maxfrees = man->frees;
         }
 
